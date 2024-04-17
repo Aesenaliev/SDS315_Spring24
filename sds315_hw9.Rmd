@@ -1,0 +1,215 @@
+---
+title: "sds315_hw9"
+author: "Arthur Esenaliev"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+library(effectsize)
+library(kableExtra)
+library(MatchIt)
+```
+
+## Question 1
+
+```{r, echo = FALSE}
+
+turnout = read.csv("turnout.csv")
+solder = read.csv("solder.csv")
+
+```
+
+### Part A
+
+```{r, echo = FALSE}
+
+table1 = turnout %>%
+  group_by(GOTV_call) %>%
+  summarize(prop_vote = mean(voted1998))
+
+kbl(table1)
+```
+
+The proportion of those receiving a GOVT call and voted in 1998 was `r round(table1$prop_vote[1],2)`.
+The sample proportion of those not receiving a GOVT call and voted in 1998 was `r round(table1$prop_vote[2],2)`.
+
+```{r, echo = FALSE, include = FALSE}
+prop.test(voted1998 ~ GOTV_call, data = turnout)
+```
+Constructing a 95% confidence interval tells us for the difference in proportions for voting was somewhere in between 14.1% and 26.6%. The difference in proportions from the sample estimates were 0.205. This is pretty significant, because the p value calculated is 3.122e-10, which is under 0.05. Voting rates whether you got a govt call is likely higher, but there are other variables in play that we must not forget about.
+
+\newpage
+
+## Part B
+
+```{r, echo = FALSE, fig.width=3, fig.height=2}
+
+ggplot(turnout) +
+  geom_boxplot(aes(x = factor(GOTV_call), y = AGE))
+
+ggplot(turnout) +
+  geom_boxplot(aes(x = factor(voted1998), y = AGE))
+
+turnout_party = turnout %>%
+  group_by(MAJORPTY) %>%
+  summarize(prop_govcall = mean(GOTV_call))
+
+turnout_party2 = turnout %>%
+  group_by(MAJORPTY) %>%
+  summarize(prop_voted1998 = mean(voted1998))
+
+ggplot(turnout_party) +
+  geom_col(aes(x = factor(MAJORPTY), y = prop_govcall))
+
+ggplot(turnout_party2) +
+  geom_col(aes(x = factor(MAJORPTY), y = prop_voted1998))
+
+turnout_1996 = turnout %>%
+  group_by(voted1996) %>%
+  summarize(prop_govcall2 = mean(GOTV_call))
+
+turnout_1996_2 = turnout %>%
+  group_by(voted1996) %>%
+  summarize(prop_voted1998 = mean(voted1998))
+
+ggplot(turnout_1996) +
+  geom_col(aes(x = factor(voted1996), y = prop_govcall2))
+
+ggplot(turnout_1996_2) +
+  geom_col(aes(x = factor(voted1996), y = prop_voted1998))
+```
+\
+Isolating the effects separately, I tried finding the confounding effect of AGE, that affects with both x (predictor) and response (y) variables. From the AGE box plots, it is very clearly seen that the people that received the government call were older, on average. Additionally, the people who ended up voting in 1998 were also older on average. This age confounder affects both the predictor (GOTV_call) and the response (voting in 1998).
+
+The people that got a gov call were more likely registered with a major party on average. Additionally, people who voted in 1998 were also more likely to be registered with a main party. This would prove that MAJORPTY to be a confounder because it is a competing causal explanation for a correlation. It affects both x and y.
+
+The 3rd confounder is voting in 1996. People who voted in 1996 were more likely to receive the gov call on average, as well as people who voted in 1998 likely also voted in 1996, on average. This competing causal explanation shows that voting in 1996 is a confounding variable because it affects the x and y variable. 
+
+\newpage
+
+### Part C
+
+```{r, echo = FALSE}
+
+turnout_matched = matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY, data = turnout, ratio = 5)
+turnout_matched = match.data(turnout_matched)
+
+# verify balance in matched data set.
+matched_age = mean(AGE ~ GOTV_call, data = turnout_matched)
+kbl(matched_age, col.names = c("GOTV_call", "Age (Matched)"))
+
+matched_vote = xtabs(~ voted1996 + GOTV_call, data = turnout_matched) %>%
+  prop.table(margin = 2)
+matched_vote_df = as.data.frame(matched_vote)
+kable(matched_vote_df)
+
+matched_party = xtabs(~ MAJORPTY + GOTV_call, data = turnout_matched) %>%
+  prop.table(margin = 2)
+matched_party_df = as.data.frame(matched_party)
+kable(matched_party_df)
+
+```
+
+The matched data set got rid of the effect of the confounding variables as seen in the tables above. For example, the voted1996 confounder has been balanced from matching to where it didn't influence the likeliness of receiving a government call. Same goes for MAJORPTY, whether you recieved a gov call or not have nearly identical proportions of major party registrations. Age is also balanced to show average age from the gov call and non gov call group. 
+
+```{r, echo = FALSE}
+
+table2 = turnout_matched %>%
+  group_by(GOTV_call) %>%
+  summarize(prop_vote = mean(voted1998))
+kbl(table2)
+```
+```{r, echo = FALSE, include = FALSE}
+
+prop.test(voted1998 ~ GOTV_call, data = turnout_matched)
+
+```
+
+Calculating a 95% confidence interval tells us that we are 95% confident that the true difference in proportions of whether you got a gotv call or not lies between 0.56% and 14.18%. The p-value for this difference in proportions test is 0.0379, which is statistically significant. The effect of receiving a government call does raise the likeliness of voting in 1998, but not as likely as we thought before. There are many confounders at play that affect likelihood of voting on their own terms. 
+
+
+
+\newpage
+
+## Question 2
+
+### Part A
+
+```{r, echo = FALSE, warning = FALSE, fig.width=6, fig.height=2.5}
+
+solder_gg = ggplot(solder)
+
+solder_gg + 
+  geom_jitter(aes(x = Opening, y = skips), width = 0.2, alpha = 0.1) +
+  stat_summary(aes(x = Opening, y = skips), fun = 'mean', color = 'blue', size = 1) +
+  labs(x = "opening", title = "Skips based on size of opening")
+```
+```{r, include = FALSE}
+mean(skips ~ Opening, data = solder)
+```
+This graph shows the openings of solder gun (L Large, M Medium, S Small) on the number of skips. The average skips for the large, medium, and small openings are 1.53, 3.57, and 11.49. As you can see, the number of skips increases ON AVERAGE when the opening gets smaller.
+
+```{r, echo = FALSE, warning = FALSE, fig.width=6, fig.height=2.5}
+
+solder_gg + 
+  geom_jitter(aes(x = Solder, y = skips), width = 0.2, alpha = 0.1) +
+  stat_summary(aes(x = Solder, y = skips), fun = 'mean', color = 'blue', size = 1) +
+  labs(x = "solder", title = "Skips based on thickness of alloy for soldering")
+```
+```{r, include = FALSE}
+mean(skips ~ Solder, data = solder)
+
+```
+
+This graph shows the thickness (Thick or thin) of alloy on solder gun on the number of skips. The average skips for the thick and thin alloys openings are 2.904 and 8.156. The number of skips ON AVERAGE get larger as the solder is thinner. 
+\newpage
+### Part B
+
+```{r, echo = FALSE}
+
+solder_model = lm(skips ~ Opening + Solder + Opening:Solder, data=solder)  
+solder_model_coef = data.frame(coef(solder_model))
+solder_ci = data.frame(confint(solder_model, level = 0.95))
+estimates_table = cbind(solder_ci, solder_model_coef)
+colnames(estimates_table) = c("2.5%", "97.5", "Estimate")
+kbl(estimates_table)
+```
+### Part C
+
+The model created has 3 main effects and 2 interactions.
+\
+The baseline skips that have large opening and thick solder (0 for OpeningM, OpeningS, and SolderThin) is 0.3933.
+\
+The main effect for the medium opening is 2.4067, in isolation. 
+\
+The main effect for the small opening is 5.1267, in isolation. 
+\
+The main effect for having thin solder is 2.2800, in isolation.
+\
+The interaction effect for having medium opening with thin solder is -0.7400. When both medium and thin, it yields skips lower 0.7400.
+\
+The interaction effect for small opening with thin solder is 9.6533. When both small and thin, it yields skips higher 9.6533. 
+
+
+### Part D
+
+
+
+```{r, echo = FALSE}
+
+data_solder = matrix(c(5.52,17.4533,2.8,4.34,0.3933,2.6733), ncol = 3)
+rownames(data_solder) = c("Thick", "Thin")
+colnames(data_solder) = c("Small", "Medium", "Large")
+
+data_solder = as.table(data_solder)
+kbl(data_solder)
+
+```
+I would recommend a large opening and thick solder because that would minimize the average number of skips.
