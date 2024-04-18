@@ -1,6 +1,6 @@
 ---
 title: "sds315_hw9"
-author: "Arthur Esenaliev"
+author: "Arthur Esenaliev, EID - are2376, REPO - https://github.com/Aesenaliev/SDS315_Spring24"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
@@ -40,10 +40,10 @@ kbl(table1)
 The proportion of those receiving a GOVT call and voted in 1998 was `r round(table1$prop_vote[1],2)`.
 The sample proportion of those not receiving a GOVT call and voted in 1998 was `r round(table1$prop_vote[2],2)`.
 
-```{r, echo = FALSE, include = FALSE}
+```{r, echo = FALSE}
 prop.test(voted1998 ~ GOTV_call, data = turnout)
 ```
-Constructing a 95% confidence interval tells us for the difference in proportions for voting was somewhere in between 14.1% and 26.6%. The difference in proportions from the sample estimates were 0.205. This is pretty significant, because the p value calculated is 3.122e-10, which is under 0.05. Voting rates whether you got a govt call is likely higher, but there are other variables in play that we must not forget about.
+Constructing a 95% confidence interval tells us for the difference in proportions for voting was somewhere in between 14.1% and 26.6%. The difference in proportions from the sample estimates were around 0.2 or 20%. This is pretty significant, because the p value calculated is 3.122e-10, which is under 0.05. Voting rates whether you got a govt call is likely higher, but there are other variables in play that we must not forget about.
 
 \newpage
 
@@ -52,10 +52,12 @@ Constructing a 95% confidence interval tells us for the difference in proportion
 ```{r, echo = FALSE, fig.width=3, fig.height=2}
 
 ggplot(turnout) +
-  geom_boxplot(aes(x = factor(GOTV_call), y = AGE))
+  geom_boxplot(aes(x = factor(GOTV_call), y = AGE)) +
+  labs(title = "Gov call on age")
 
 ggplot(turnout) +
-  geom_boxplot(aes(x = factor(voted1998), y = AGE))
+  geom_boxplot(aes(x = factor(voted1998), y = AGE)) +
+  labs(title = "Voted in 1998 on age")
 
 turnout_party = turnout %>%
   group_by(MAJORPTY) %>%
@@ -63,13 +65,15 @@ turnout_party = turnout %>%
 
 turnout_party2 = turnout %>%
   group_by(MAJORPTY) %>%
-  summarize(prop_voted1998 = mean(voted1998))
+  summarize(prop_voted1998 = mean(voted1998)) 
 
 ggplot(turnout_party) +
-  geom_col(aes(x = factor(MAJORPTY), y = prop_govcall))
+  geom_col(aes(x = factor(MAJORPTY), y = prop_govcall)) +
+  labs(title = "Major Party on prop Gov Call")
 
 ggplot(turnout_party2) +
-  geom_col(aes(x = factor(MAJORPTY), y = prop_voted1998))
+  geom_col(aes(x = factor(MAJORPTY), y = prop_voted1998)) +
+  labs(title = "Major Party on Voted 1998")
 
 turnout_1996 = turnout %>%
   group_by(voted1996) %>%
@@ -80,10 +84,12 @@ turnout_1996_2 = turnout %>%
   summarize(prop_voted1998 = mean(voted1998))
 
 ggplot(turnout_1996) +
-  geom_col(aes(x = factor(voted1996), y = prop_govcall2))
+  geom_col(aes(x = factor(voted1996), y = prop_govcall2)) +
+  labs(title = "Voted 1996 on gov call")
 
 ggplot(turnout_1996_2) +
-  geom_col(aes(x = factor(voted1996), y = prop_voted1998))
+  geom_col(aes(x = factor(voted1996), y = prop_voted1998)) +
+  labs(title = "Voted 1996 on Voting 1998")
 ```
 \
 Isolating the effects separately, I tried finding the confounding effect of AGE, that affects with both x (predictor) and response (y) variables. From the AGE box plots, it is very clearly seen that the people that received the government call were older, on average. Additionally, the people who ended up voting in 1998 were also older on average. This age confounder affects both the predictor (GOTV_call) and the response (voting in 1998).
@@ -126,13 +132,13 @@ table2 = turnout_matched %>%
   summarize(prop_vote = mean(voted1998))
 kbl(table2)
 ```
-```{r, echo = FALSE, include = FALSE}
+```{r, echo = FALSE}
 
 prop.test(voted1998 ~ GOTV_call, data = turnout_matched)
 
 ```
 
-Calculating a 95% confidence interval tells us that we are 95% confident that the true difference in proportions of whether you got a gotv call or not lies between 0.56% and 14.18%. The p-value for this difference in proportions test is 0.0379, which is statistically significant. The effect of receiving a government call does raise the likeliness of voting in 1998, but not as likely as we thought before. There are many confounders at play that affect likelihood of voting on their own terms. 
+Calculating a 95% confidence interval tells us that we are 95% confident that the true difference in proportions of whether you got a gotv call or not lies between 0.56% and 14.18%. The difference in proportions are around 0.074 or 7.4% compared to 20% in the unmatched data. The p-value for this difference in proportions test is 0.0379, which is statistically significant. The effect of receiving a government call does raise the likeliness of voting in 1998, but not as likely as we thought before. There are many confounders at play that affect likelihood of voting on their own terms. 
 
 
 
@@ -170,6 +176,7 @@ mean(skips ~ Solder, data = solder)
 
 This graph shows the thickness (Thick or thin) of alloy on solder gun on the number of skips. The average skips for the thick and thin alloys openings are 2.904 and 8.156. The number of skips ON AVERAGE get larger as the solder is thinner. 
 \newpage
+
 ### Part B
 
 ```{r, echo = FALSE}
@@ -182,6 +189,10 @@ colnames(estimates_table) = c("2.5%", "97.5", "Estimate")
 kbl(estimates_table)
 ```
 ### Part C
+```{r, echo = FALSE}
+coef(solder_model)
+
+```
 
 The model created has 3 main effects and 2 interactions.
 \
