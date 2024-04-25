@@ -253,11 +253,15 @@ f2 = standardize_parameters(lm_groceries4)
 
 head(f, 2)
 head(f2, 2 )
+
+# a
 ```
 * Based on the sign of the Income10K coefficient, which is negative, when comparing two ZIP codes that differ in 1 Income10K, we would expect the ZIP code where the Income10K is larger to have lower prices of grocery by 0.02 dollars. To know this you would compare the estimates of the Income10K variable. The null hypothesis of no partial relationship between Income10K and Price looks plausible because the p_value is 0.09 (> 0.05). There is some statistical uncertainty with the number, according to the CI [-0.03, 0.00].
 
 A one-standard deviation increase in the income of a ZIP code seems to be associated with
 a -0.04 standard-deviation change in the price that consumers in that ZIP code expect to pay for
 the same product (CI [-0.08, 0.01]).
+
+
 
 
