@@ -1,0 +1,263 @@
+---
+title: "sds315_hw10"
+author: "Arthur Esenaliev, EID - are2376, REPO - https://github.com/Aesenaliev/SDS315_Spring24"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+library(effectsize)
+library(kableExtra)
+library(MatchIt)
+library(moderndive)
+```
+
+## Problem 1 - Redlining
+
+```{r}
+
+redline = read.csv("redlining.csv")
+
+```
+
+#### Question
+
+The question we are trying to answer is if there is an association between the number of FAIR policies and the racial/ethnic composition of a ZIP code. 
+
+#### Approach
+
+To answer this question, I used the STEER approach, looking at confounders, their effects, as well as fitting a linear model with these confounders. I then looked at the spread of policies, to see if the effect of minority % has an association.
+\
+
+#### Results
+
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = minority, y = policies)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Minority (%) on number of FAIR policies per 100 housing units") +
+  theme(plot.title = element_text(size=8))
+
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+
+ggplot(redline, aes(x = fire, y = policies)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Fires on policies per 100 housing units") +
+  theme(plot.title = element_text(size=8))
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = minority, y = fire)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Minority (%) on fires per 100 housing units") +
+  theme(plot.title = element_text(size=8))
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = age, y = policies)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Percent of Houses built before WW2 on policies") +
+  theme(plot.title = element_text(size=8))
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = minority, y = age)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Minority (%) on percent of houses built before WW2") +
+  theme(plot.title = element_text(size=8))
+
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = income, y = policies)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Income on policies per 100 housing units") +
+  theme(plot.title = element_text(size=8))
+
+```
+\
+```{r, fig.width=4, fig.height=2}
+
+ggplot(redline, aes(x = minority, y = income)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Minority (%) on median family income (thousands") +
+  theme(plot.title = element_text(size=8))
+
+
+
+
+```
+
+\
+
+```{r, fig.width=4, fig.height=2}
+ggplot(redline) +
+  geom_histogram(aes(x = policies))
+
+lm_redline = lm(policies ~ minority + fire + age + income, data = redline)
+
+get_regression_table(lm_redline, conf.level = 0.95)
+
+```
+```{r, include = FALSE}
+select(redline, policies)
+lm_redline_before = lm(policies ~ minority ,data = redline)
+get_regression_table(lm_redline_before, conf.level = 0.95)
+
+```
+
+
+
+#### Conclusion
+
+* Model estimates minority coefficient to be 0.008. When comparing ZIP codes with the 1% greater percentage of self-identified minorities, you expect the ZIP with more minorities have 0.008 more FAIR policies (CI [0.003, 0.014]). Practically speaking, there shouldn't be any difference between policies and minority, so any differnce from 0 should be evidence for an association. But, since the minority coefficient's confidence interval is statistically significant (0.003 - 0.014, does NOT have 0), so there is meaningful evidence to show that there is an association between the minority variable and the number of FAIR policies.
+
+According to the regression, a 50% change in the minority status would result in a 0.4 policy increase.
+In light of the data, that accounts for a good 18% of policies (since the range is 2.2). So there is an association between FAIR policies and minority, after adjusting for the confounders like fire, age, and income. 
+
+\newpage
+
+## Problem 2 - Grocery store prices
+
+```{r}
+
+groceries = read.csv("groceries.csv")
+
+```
+
+### Part A
+
+```{r}
+
+avg_prices = groceries %>%
+  group_by(Store) %>%
+  summarize(avg_price = mean(Price))
+
+
+ggplot(avg_prices, aes(x = Store, y = avg_price)) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Price differences across stores", y = "Average Price ($)") +
+  coord_flip()
+
+```
+The graph above shows the difference stores and their average prices for the products from the database. It can be seen that some stores like Whole Foods and Wheatsville Food Co-Op has a greater average price for the products, while other stores like fiesta and Walmart have a lower average price. 
+
+
+### Part B
+
+```{r, fig.height=10}
+
+count_products = groceries %>%
+  group_by(Product) %>%
+  summarize(stores_selling = count(Product))
+
+ggplot(count_products, aes(x = Product, y = stores_selling)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Stores selling Products", y = "Number of Stores Selling") +
+  coord_flip()
+```
+
+This graph shows the number of stores selling a particular product. A carton of eggs seems to be the product sold at every store (16 stores sell eggs). There is a variety of number of stores that sell different products, some sell stuff that other stores don't. Shows that you need to control for the price.
+
+### Part C
+
+```{r}
+groceries$Type <- factor(groceries$Type)
+groceries$Type <- relevel(groceries$Type, ref = "Grocery")
+
+
+lm_groceries = lm(Price ~ Type + Product, data = groceries)
+c = get_regression_table(lm_groceries, conf.level = 0.95, digits = 2)
+head(c, 5)
+```
+
+* Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between 0.41 and 0.92 dollars more for the same product. Estimate being 0.66 CI (0.41, 0.92)
+
+* Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), high end stores charge somewhere between 0.13 and 0.61 dollars more for the same product. Estimate being 0.37 CI (0.13, 0.61)
+
+* Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), natural stores charge somewhere between 0.31 and 0.83 dollars more for the same product. Estimate being 0.57 CI (0.31, 0.83)
+
+* Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), small format stores charge somewhere between -0.02 and 0.46  dollars more for the same product. Estimate being 0.22 CI (-0.02, 0.46)
+
+### Part D
+
+```{r}
+groceries$Store <- factor(groceries$Store)
+groceries$Store <- relevel(groceries$Store, ref = "Albertsons")
+lm_groceries2 = lm(Price ~ Store + Product, data = groceries)
+d = get_regression_table(lm_groceries2, conf.level = 0.95, digits = 2)
+head(d, 14)
+```
+
+When comparing the stores by itself, keeping the product constant, the two stores that charge the *lowest* prices are **Walmart** and **Kroger Fresh Fare**. You would expect Walmart to have the same product about 0.99 dollars cheaper from the baseline (Albertson's, keeping product CONSTANT), and Kroger Fresh Fare to have the same product about 0.90 dollars cheaper from the baseline.   
+
+The two stores that charge the *highest* prices when comparing the same product are **Whole Foods** and **Wheatsville Food CO-Op**. You would expect Whole Foods to have the same product about 0.36 dollars more expensive from the baseline, and Wheatsville Food Co-Op to have the same product for about 0.29 dollars more expensive from the baseline. 
+
+
+### Part E
+
+```{r}
+
+groceries$Store <- factor(groceries$Store)
+groceries$Store <- relevel(groceries$Store, ref = "H-E-B ")
+lm_groceries3 = lm(Price ~ Store + Product, data = groceries)
+e = get_regression_table(lm_groceries3, conf.level = 0.95, digits = 2)
+head(e, 14)
+```
+
+**Possibilities**
+
+* Central Market charges more than HEB for the same product.
+* Central Market charges a similar amount to HEB for the same product.
+
+Looking at the regression table for the model from Part D and re-factored in Part E, it is seen that if Central Market and HEB have the same product, the model estimates (where the H-E-B store is the baseline) that Central Market would be 0.07 dollars greater (keeping product constant), with a confidence interval (-0.25, 0.40). Not statistically significant. 
+
+I would say that the second probability is correct because the model estimates that Central Market has about a 0.07 dollar up charge to HEB. 7 cents does not seem that significant (because of the CI being not statistically significant). Their differences in price are not that big, as they are the closet difference than any other store. Comparing HEB to another store that is considered fancy like Whole Foods, there is a 1.01 dollar difference from the baseline. As well, comparing other stores like Target and Walmart having around a 0.60 dollar difference,  8 cents just doesn't seem that "big" in light of the data. 
+
+
+### Part F
+
+
+```{r}
+
+groceries = groceries %>%
+  mutate(Income10K = round(Income /10000),1)
+
+lm_groceries4 = lm(Price ~ Income10K + Product, data = groceries)
+f = get_regression_table(lm_groceries4, conf.level = 0.95, digits = 2)
+f2 = standardize_parameters(lm_groceries4)
+
+head(f, 2)
+head(f2, 2 )
+```
+* Based on the sign of the Income10K coefficient, which is negative, when comparing two ZIP codes that differ in 1 Income10K, we would expect the ZIP code where the Income10K is larger to have lower prices of grocery by 0.02 dollars. To know this you would compare the estimates of the Income10K variable. The null hypothesis of no partial relationship between Income10K and Price looks plausible because the p_value is 0.09 (> 0.05). There is some statistical uncertainty with the number, according to the CI [-0.03, 0.00].
+
+A one-standard deviation increase in the income of a ZIP code seems to be associated with
+a -0.04 standard-deviation change in the price that consumers in that ZIP code expect to pay for
+the same product (CI [-0.08, 0.01]).
+
+
